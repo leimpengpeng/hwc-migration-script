@@ -1,6 +1,6 @@
 ### System enviroment and Installation:
     - This script been tested in Linux enviroment with python 3.10.6
-    - To start: 
+    - Getting start: 
         git clone https://github.com/leimpengpeng/hwc-migration-script.git
         sudo apt install python3-venv
         python3 -m venv .
@@ -20,6 +20,6 @@
     3. Start migration task with: 
         $ python3 migrate oms_tasks <region-code>
         eg: 
-            $ python3 migrate oms_tasks ap-southeast-3 //for singappre
+            $ python3 migrate oms_tasks ap-southeast-3 // for singappre
             $ python3 migrate oms_tasks cn-east-3 // for ShangHai
 

@@ -15,23 +15,15 @@ load_dotenv()
 
 AK = os.getenv('DNT_AK')
 SK = os.getenv('DNT_SK')
-# OMS_GROUPS_ENDPOINT = "https://oms.{SG_REGION}.myhuaweicloud.com/v2/{}/taskgroups"
+sig = signer.Signer()
+sig.Key = AK
+sig.Secret = SK
 
-
-# SGOBSClient = ObsClient(access_key_id=AK, secret_access_key=SK, server=OBS_ENDPOINT)
-
-Basepath = "/116476"
-BasepathLen = len(Basepath)
-
-FolderSet = set()
-src_bucket = "src"
-
-def addFolder(path):
-    FolderSet.add(path[BasepathLen:])
 
 @click.group()
 def cli():
     pass
+
 
 @cli.command(name='generate_url_list')
 def generate_url_list_from_akamai():
@@ -81,11 +73,13 @@ def createOMSTask(region):
     if(region == "ap-southeast-3"):
         project_id = os.getenv('SG_PROJECT_ID')
         dnt_bucket = os.getenv('DNT_SG_BUCKET')
+        src_lists_bucket = os.getenv('TEMP_SG_BUCKET')
     if(region == "cn-east-3"):
         project_id = os.getenv('SH_PROJECT_ID')
         dnt_bucket = os.getenv('DNT_SH_BUCKET')
+        src_lists_bucket = os.getenv('TEMP_SH_BUCKET')
     
-    #request = signer.HttpRequest('POST', OMS_ENDPOINT.format(project_id))
+    
     OMS_GROUPS_ENDPOINT = "https://oms.{}.myhuaweicloud.com/v2/{}/taskgroups"
     request = signer.HttpRequest('POST', OMS_GROUPS_ENDPOINT.format(region, project_id))
     request.headers = {
@@ -94,17 +88,16 @@ def createOMSTask(region):
     }
     from obs import PutObjectHeader, CreateBucketHeader
     createBucketHeader = CreateBucketHeader()
-    
     createBucketHeader.aclControl ="PUBLIC_READ_DELIVERED"
     OBS_ENDPOINT = f"https://obs.{region}.myhuaweicloud.com"
     OBSClient = ObsClient(access_key_id=AK, secret_access_key=SK, server=OBS_ENDPOINT)
     OBSClient.createBucket(dnt_bucket, location=region, header=createBucketHeader)
-
+    
     request.body = json.dumps({
         "src_node": {
             "cloud_type": "URLSource",
             "list_file": {
-                "obs_bucket": "src-url-lists",
+                "obs_bucket": src_lists_bucket,
                 "list_file_key": "key_list/"
             }
         },
@@ -135,30 +128,32 @@ def createOMSTask(region):
 
 
 @cli.command(name='upload_urls_obj')
-def uploadUrlsObj():
-    url_lists_obj= os.getenv('URL_LISTS_OBJ')
-    src_bucket = os.getenv('URL_LISTS_SRC_BUCKET')
-    region = "ap-southeast-3"
+@click.argument("region")
+def uploadUrlsObj(region):
+    if(region == "ap-southeast-3"):
+        temp_bucket = os.getenv('TEMP_SG_BUCKET')
+    if(region == "cn-east-3"):
+        temp_bucket = os.getenv('TEMP_SH_BUCKET')
+     
+    url_lists_obj = os.getenv('URL_LISTS_OBJ')
     try:
         from obs import PutObjectHeader, CreateBucketHeader
         createBucketHeader = CreateBucketHeader()
         createBucketHeader.aclControl ="PUBLIC_READ_DELIVERED"
         OBS_ENDPOINT = f"https://obs.{region}.myhuaweicloud.com"
         OBSClient = ObsClient(access_key_id=AK, secret_access_key=SK, server=OBS_ENDPOINT)
-        OBSClient.createBucket(src_bucket, location=region, header=createBucketHeader)
-        
+        resp = OBSClient.createBucket(temp_bucket, location=region, header=createBucketHeader)
+        print(url_lists_obj)
         headers = PutObjectHeader()
         headers.contentType = 'text/plain'
         for file in os.listdir(url_lists_obj):
-            fileitem = f"{url_lists_obj}/{file}"
-            resp_putFile = OBSClient.putFile(src_bucket, fileitem, fileitem, headers=headers)
+            item = f"{url_lists_obj}/{file}"
+            print(item)
+            resp_putFile = OBSClient.putFile(temp_bucket, item, item, headers=headers)
     except:
         import traceback
         print(traceback.format_exc())
 
 
-sig = signer.Signer()
-sig.Key = AK
-sig.Secret = SK
 
 cli(prog_name='migrate')
