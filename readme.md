@@ -5,12 +5,10 @@
         sudo apt install python3-venv
         python3 -m venv .
         pip3 install requirement 
- 
 ### Enviroment setup:
     Please contact owner : for .env setup
-
 ### OMS task group migration: 
-    1. Generate list of file to migrate
+    1. Generate list of url_file for migrate
         $ python3 migrate generate_url_list
         Output: key_list directiory is generated with the urls_list of file to migrate
     2. Upload the list to bucket:
